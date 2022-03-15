@@ -1,0 +1,12 @@
+git init : initializes folder named .git to store commits/version history
+git add . : stages all files for pic
+git restore --staged <fname> : unstages staged files
+git commit -m "msg" : pic clicked with caption "msg"
+git status : checks stage, queue for pics
+git stash : save and move staged people to back stage
+git stash pop : back stage to stage
+git stash clear : say back staged to fuck off without pic
+git log : see album
+git reset <hashID> : delete all pics clicked after <hashID>
+
+#edited
