@@ -8,5 +8,6 @@ git stash pop : back stage to stage
 git stash clear : say back staged to fuck off without pic
 git log : see album
 git reset <hashID> : delete all pics clicked after <hashID>
+git remote add upstream <URL> : add URL of original repo for PR
 
 #edited
