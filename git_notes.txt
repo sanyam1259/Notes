@@ -10,4 +10,7 @@ git log : see album
 git reset <hashID> : delete all pics clicked after <hashID>
 git remote add upstream <URL> : add URL of original repo for PR
 
+1 branch => 1 PR
+so open new PRs for different features discussion
+
 #edited
