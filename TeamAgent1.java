@@ -4,8 +4,10 @@
  */
 package tileworld.agent;
 
-import sim.display.Console;
-import tileworld.TWGUI;
+import sim.display.GUIState;
+import sim.portrayal.Inspector;
+import sim.portrayal.LocationWrapper;
+import sim.portrayal.Portrayal;
 import tileworld.environment.TWDirection;
 import tileworld.environment.TWEntity;
 import tileworld.environment.TWEnvironment;
@@ -15,9 +17,10 @@ import tileworld.environment.TWFuelStation;
 import tileworld.exceptions.CellBlockedException;
 import tileworld.planners.AstarPathGenerator;
 import tileworld.planners.TWPath;
-import tileworld.planners.TWPathStep;
 import tileworld.environment.TWObstacle;
+import tileworld.planners.TWPathStep;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,8 +38,8 @@ import java.util.Comparator;
  * Description:
  *
  */
-public class TeamAgent1 extends TWAgent{
-    private String name="agent1";
+public class TeamAgent2 extends TWAgent{
+    private String name="agent2";
     private String tempMessage = "";
     private String tempAllMessage = "";
     private int fuelX = -1;
@@ -68,7 +71,7 @@ public class TeamAgent1 extends TWAgent{
     private int[] cPlanFuelPoint=new int[]{-1,-1};
 
 
-    public TeamAgent1(String name, int xpos, int ypos, TWEnvironment env, double fuelLevel) {
+    public TeamAgent2(String name, int xpos, int ypos, TWEnvironment env, double fuelLevel) {
         super(xpos,ypos,env,fuelLevel);
         this.name = name;
         mapChainLength = this.initalMapChain();
@@ -208,9 +211,6 @@ public class TeamAgent1 extends TWAgent{
         for (int i=0; i < search_tile_chain.size(); i++){
             System.out.println("Bplan SearchChain x,y" + search_tile_chain.get(i)[0]+" " +search_tile_chain.get(i)[1]);
         }
-
-
-
     }
 
     public int initalMapChain(){  // generate mapchain as scheme2 shown: index = 64 if 50*50
@@ -561,7 +561,7 @@ public class TeamAgent1 extends TWAgent{
         if ("PickingTile".equals(st1) && st2==2){
             pick_tile_chain = getPickRoute(this.getX(), this.getY(), this.carriedTiles.size());
             agentState1 = "PickingTile";
-            agentState2 = 2; // AplanPick
+            agentState2 = 2;
             agentState3 = 0;
         }
     }
@@ -590,66 +590,6 @@ public class TeamAgent1 extends TWAgent{
         return preScore;
     }
 
-    // only fot agent 1
-    private void get_scheme(){
-        double toFuelScore = memory_tile_score(fuelX, fuelY);
-        double agent1Score = memory_tile_score(this.getX(), this.getY(), this.carriedTiles.size());
-        double agent2Score = memory_tile_score(this.otherAgentPosition[0], this.otherAgentPosition[1], otherCarriedTiles);
-
-        System.out.println("NNOOWW  Getting get_scheme!!!, toFuel="+toFuelScore+"  toAgent1="+agent1Score+"  toAgent2="+agent2Score);
-
-        if ("AddingFuel".equals(agentState1)){
-
-        } else if ("AddingFuel".equals(otherAgentState1)){
-
-        }
-
-        if ( "A".equals(AgentParameter.scheme) ){  // Plan A
-            if (agent1Score < AgentParameter.aPlanSearchScore ||
-                    getPickRoute("score", this.getX(), this.getY(), this.carriedTiles.size())<AgentParameter.aPlanPickStart){
-                if(change_state("SearchingTile", 2, 0)){
-                    state_changer("SearchingTile", 2, 0);
-                }
-                if (agent2Score < AgentParameter.aPlanSearchScore ||
-                        getPickRoute("score", otherAgentPosition[0], otherAgentPosition[1], otherCarriedTiles)<AgentParameter.aPlanPickStart){
-                    addTempMessage("Require SearchingTile "+"AplanSearch");
-                } else {
-                    addTempMessage("Require PickingTile "+"AplanPick");
-                }
-            } else {
-                if (change_state("PickingTile", 2, 0)){
-                    state_changer("PickingTile", 2, 0);
-                }
-                if (agent2Score < AgentParameter.aPlanSearchScore ||
-                        getPickRoute("score", otherAgentPosition[0], otherAgentPosition[1], otherCarriedTiles)<AgentParameter.aPlanPickStart){
-                    addTempMessage("Require SearchingTile "+"AplanSearch");
-                } else{
-                    addTempMessage("Require PickingTile "+"AplanPick");
-                }
-            }
-        } else
-
-        if ("B".equals(AgentParameter.scheme)){  // Plan B
-            agent1Score = bPlanAgent1PickScore();
-            if (agent1Score < AgentParameter.bPlanPickScore){
-                if (change_state("SearchingTile", 1, agentState3)){
-                    state_changer("SearchingTile", 1, agentState3);
-                }
-                addTempMessage("Require PickingTile BplanPick");
-            } else {
-                if (change_state("PickingTile", 1, agentState3)) state_changer("PickingTile", 1, agentState3);
-                addTempMessage("Require PickingTile BplanPick");
-            }
-        }else
-
-        if ("C".equals(AgentParameter.scheme)){  //Plan C
-            cPlanSearchPointInitial();
-            state_changer("planC", 3, Math.max(agentState3,0));
-            addTempMessage("Require planC");
-        }
-
-    }
-
     private Object getClosestObjectInMemory(Class<?> type){
         int indx=-9999;
         int indy=-9999;
@@ -673,7 +613,6 @@ public class TeamAgent1 extends TWAgent{
         int indy=-1;
         int allowDis = AgentParameter.agent2MaxDis;
         double curChoiceScore=99999.0;
-        if ("agent1".equals(this.name)) allowDis = AgentParameter.agent1pickDis;
         if (bPlanPickArea.size()==0) return new int[]{-1, -1};
         int[] lastPoint=bPlanPickArea.get(bPlanPickArea.size()-1);
         for (int[] posA : bPlanPickArea){
@@ -684,9 +623,8 @@ public class TeamAgent1 extends TWAgent{
                         if ((currentMemory.getO() instanceof TWTile && this.carriedTiles.size() < 3) ||
                                 (currentMemory.getO() instanceof TWHole && this.carriedTiles.size() > 0)){
                             int curDis = (int)this.getDistanceTo(currentMemory.getO());
-                            if ("agent1".equals(this.name)){
-                                curDis += Math.abs(lastPoint[0]-currentMemory.getO().getX())+Math.abs(currentMemory.getO().getY()-lastPoint[1]);
-                                curDis/=2;
+                            if ("agent2".equals(this.name)){
+                                curDis += (int)currentMemory.getO().getDistanceTo(otherAgentPosition[0], otherAgentPosition[1]);
                             }
                             System.out.println("tile x,y:"+(posA[0]+i)+" "+(posA[1]+j)+"  distance:"+curDis+"  reached ELT"+(objectLifetimeEstimate(currentMemory)+this.getDistanceTo(currentMemory.getO())));
                             if (curDis <= allowDis && getELT() > objectLifetimeEstimate(currentMemory)+this.getDistanceTo(currentMemory.getO())){
@@ -734,19 +672,20 @@ public class TeamAgent1 extends TWAgent{
         if (this.carriedTiles.size() < 3 && this.getMemory().getMemoryGrid().get(this.getX(), this.getY()) instanceof TWTile){
             return new TWThought(TWAction.PICKUP);
         }
+
         if (this.carriedTiles.size() > 0 && this.getMemory().getMemoryGrid().get(this.getX(), this.getY()) instanceof TWHole){
             return new TWThought(TWAction.PUTDOWN);
         }
+
         if (this.getX()==fuelX && this.getY()==fuelY && this.getFuelLevel() <= 490){
             return new TWThought(TWAction.REFUEL);
         }
 
         // if (this.rethinking==0) this.addTempMessage("MyPosition " + this.getX()+" "+ this.getY());
-        if (this.rethinking==0 && "agent1".equals(this.name)) this.addTempMessage("MyEstimateLifeTime "+getELT());
         if (this.rethinking==0 && fuelX != -1) this.unseenMapOneStep();
         this.addTempMessage("MyState " + this.agentState1 + " " + this.agentState2 + " " + this.agentState3);
 
-        // receive message and update memory
+        //receive message, and update memory
         if (rethinking == 0){
             for (Message message : this.getEnvironment().getMessages()){
                 System.out.println(this.getName() + " receive message from " + message.getFrom() + " to " + message.getTo() + " :" + message.getMessage());
@@ -758,11 +697,6 @@ public class TeamAgent1 extends TWAgent{
                         meS = mes.split(" ");
                         messageType = meS[0];
                         switch(messageType){
-
-                            case "Request":
-                                get_scheme();
-                                break;
-
                             case "Require":
                                 if ("AddingFuel".equals(agentState1)) break;
                                 String subrequire = meS[1];
@@ -895,7 +829,7 @@ public class TeamAgent1 extends TWAgent{
             }
         }
 
-        if (otherAgentPosition[0] == -1) return new TWThought(TWAction.MOVE, TWDirection.Z);
+        if (otherAgentPosition[0] == -1) return new TWThought(TWAction.MOVE,TWDirection.Z);
 
         if (fuelX != -1 && Math.abs(this.getX()-fuelX)+Math.abs(this.getY()-fuelY) != 0 && this.agentState1!="AddingFuel"){
             int toFuelStepEst = Math.abs(this.getX()-fuelX)+Math.abs(this.getY() - fuelY);
@@ -929,126 +863,6 @@ public class TeamAgent1 extends TWAgent{
             updateSeenMap(otherAgentPosition[0], otherAgentPosition[1]);
         }
 
-        if (fuelX == -1){
-            if ("initial".equals(agentState1)){
-                int thisToLeft = Math.abs(this.getX() - 3);
-                int thisToRight = Math.abs(mapsizeX - 4 - this.getX());
-                int thisToUp = Math.abs(this.getY() - 3);
-                int thisToDown = Math.abs(mapsizeY -4- this.getY());
-                int thatToLeft = Math.abs(otherAgentPosition[0]-3);
-                int thatToRight = Math.abs(mapsizeX-4-otherAgentPosition[0]);
-                int thatToUp = Math.abs(otherAgentPosition[1] -3);
-                int thatToDown = Math.abs(mapsizeY -4- otherAgentPosition[1]);
-                double togetherStep = Math.abs(this.getX() - otherAgentPosition[0])/2 + Math.abs(this.getY() - otherAgentPosition[1])/2;
-
-                this.agentState1="FuelStationFinding";
-
-                //scheme 2
-                if (mapsizeX != mapsizeY || togetherStep <= Math.min(thisToLeft,thisToRight)/2+Math.min(thisToDown,thisToUp)/2+
-                        Math.min(thatToUp,thatToDown)/2+Math.min(thatToRight,thatToLeft)/2) {
-                    double bothX = this.getX()/2 + otherAgentPosition[0]/2;
-                    double bothY = this.getY()/2 + otherAgentPosition[1]/2;
-                    double curmin = 9999.0;
-                    int lastIndex = 0;
-                    for (int index = 0; index < mapChain.size(); index++) {
-                        double curpoint = Math.abs(mapChain.get(index)[0] - bothX) + Math.abs(mapChain.get(index)[1] - bothY);
-                        if (curmin > curpoint){
-                            curmin = curpoint;
-                            lastIndex = index;
-                        }
-                    }
-                    this.addTempMessage("GoToFindFuelStation 9 " + lastIndex);
-                    this.agentState2=0;
-                    this.agentState3=lastIndex;
-                    // scheme 1
-                } else if (thisToLeft >= thisToRight){
-                    if (thisToUp >= thisToDown){
-                        if (thatToLeft >= thatToRight){
-                            if (thatToUp >= thatToDown){
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 2");
-                                this.agentState1="FuelStationFinding";
-                                this.agentState2=6;
-                                this.agentState3=1;
-                            }
-                        } else {
-                            if (thatToUp >= thatToDown){
-                                this.addTempMessage("GoToFindFuelStation 7");
-                                this.agentState2=5;
-                                this.agentState3=1;
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 4");
-                                this.agentState2=6;
-                                this.agentState3=1;
-                            }
-                        }
-                    } else {
-                        if (thatToLeft >= thatToRight){
-                            if (thatToUp >= thatToDown){
-                                this.addTempMessage("GoToFindFuelStation 6");
-                                this.agentState1="FuelStationFinding";
-                                this.agentState2=2;
-                                this.agentState3=1;
-                            } else {
-                            }
-                        } else {
-                            if (thatToUp >= thatToDown){
-                                this.addTempMessage("GoToFindFuelStation 7");
-                                this.agentState2=1;
-                                this.agentState3=1;
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 3");
-                                this.agentState2=1;
-                                this.agentState3=1;
-                            }
-                        }
-                    }
-                } else {
-                    if (thisToUp >= thisToDown){
-                        if (thatToLeft >= thatToRight){
-                            this.addTempMessage("GoToFindFuelStation 5");
-                            this.agentState2=7;
-                            this.agentState3=1;
-                            if (thatToUp >= thatToDown){
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 2");
-                                this.agentState1="FuelStationFinding";
-                                this.agentState2=8;
-                                this.agentState3=1;
-                            }
-                        } else {
-                            if (thatToUp >= thatToDown){
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 4");
-                                this.agentState2=8;
-                                this.agentState3=1;
-                            }
-                        }
-                    } else {
-                        if (thatToLeft >= thatToRight){
-                            if (thatToUp >= thatToDown){
-                                this.addTempMessage("GoToFindFuelStation 6");
-                                this.agentState1="FuelStationFinding";
-                                this.agentState2=4;
-                                this.agentState3=1;
-                            } else {
-                                this.addTempMessage("GoToFindFuelStation 1");
-                                this.agentState2=3;
-                                this.agentState3=1;
-                            }
-                        } else {
-                            if (thatToUp >= thatToDown){
-                                this.addTempMessage("GoToFindFuelStation 8");
-                                this.agentState2=4;
-                                this.agentState3=1;
-                            } else {
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         printAgentState();
         if (!(curPath == null)  &&  this.rethinking==0 && ! "FuelStationFinding".equals(agentState1)){
             if ("PickingTile".equals(agentState1)){
@@ -1065,6 +879,11 @@ public class TeamAgent1 extends TWAgent{
                     rethinking=1;
                     return think();
                 } else if (agentState2==2){
+                    if (pick_tile_chain.size()==0 && "agent2".equals(this.name)){
+                        addTempMessage("Request");
+                        agentState3 = 0;
+                        return new TWThought(TWAction.MOVE,getRandomDirection());
+                    }
                     Object curObj = this.getMemory().getMemoryGrid().get(pick_tile_chain.get(agentState3)[0], pick_tile_chain.get(agentState3)[1]);
                     if (!(curObj instanceof TWTile) && !(curObj instanceof TWHole)){
                         rethinking = 1;
@@ -1113,18 +932,22 @@ public class TeamAgent1 extends TWAgent{
             }
         } else
         if ("idle".equals(this.agentState1)){
-            if ("agent1".equals(this.name)){
-                get_scheme();
-                this.rethinking = 1;
-                return think();
+            if ("agent2".equals(this.name)){
+                addTempMessage("Request");
+                return new TWThought(TWAction.MOVE,getRandomDirection());
             }
         } else
         if ("PickingTile".equals(this.agentState1)){
-            if (this.agentState2 == 2){ // Plan A - picktile
+            if (this.agentState2 == 2){
                 do{
                     // System.out.println("DODODODODDODODO");
                     curPath = null;
                     curPathStep = 0;
+                    if (pick_tile_chain.size()==0 && "agent2".equals(this.name)){
+                        addTempMessage("Request");
+                        agentState3 = 0;
+                        return new TWThought(TWAction.MOVE,getRandomDirection());
+                    }
                     if (pickVanished == 1 || (this.getX()==pick_tile_chain.get(agentState3)[0] && this.getY()==pick_tile_chain.get(agentState3)[1])){
                         // System.out.println("VAlished cat");
                         agentState3 += 1;
@@ -1132,9 +955,11 @@ public class TeamAgent1 extends TWAgent{
                         if ( getPickRoute("score", this.getX(), this.getY(), this.carriedTiles.size())<AgentParameter.aPlanPickStop ||
                                 agentState3 >= pick_tile_chain.size()){
                             // pick_tile_chain = getPickRoute(this.getX(), this.getY());
-                            get_scheme();
-                            this.rethinking = 1;
-                            return think();
+                            if ("agent2".equals(this.name)){
+                                addTempMessage("Request");
+                                if (agentState3 == pick_tile_chain.size()) agentState3-=1;
+                                return new TWThought(TWAction.MOVE,getRandomDirection());
+                            }
                         }
                     }
                     curPath = pathGenerator.findPath(this.getX(), this.getY(), pick_tile_chain.get(agentState3)[0], pick_tile_chain.get(agentState3)[1]);
@@ -1143,11 +968,6 @@ public class TeamAgent1 extends TWAgent{
             } else
 
             if (this.agentState2 == 1){
-                if ("agent1".equals(this.name) && bPlanAgent1PickScore() < AgentParameter.bPlanPickScore){
-                    get_scheme();
-                    rethinking=1;
-                    return think();
-                }
                 int[] bPlanPickTarget = getPossiblePick();
                 if (bPlanPickTarget[0] != -1){
                     curPath = pathGenerator.findPath(this.getX(), this.getY(), bPlanPickTarget[0], bPlanPickTarget[1]);
@@ -1170,7 +990,7 @@ public class TeamAgent1 extends TWAgent{
             }
         } else
         if ("SearchingTile".equals(this.agentState1)){
-            if (this.agentState2 == 2){ // Plan A
+            if (this.agentState2 == 2){ // Plan a
                 curPathStep = 0;
                 curPath = pathGenerator.findPath(this.getX(), this.getY(),
                         search_tile_chain.get(agentState3)[0], search_tile_chain.get(agentState3)[1]);
@@ -1178,15 +998,19 @@ public class TeamAgent1 extends TWAgent{
                     this.agentState3 += 1;
                     // System.out.println("SearchingTile--------------------------------curPATH=NONE");
                     // printAgentState();
-                    get_scheme();
-                    this.rethinking=1;
+                    addTempMessage("Request");
+                    if (agentState3 == search_tile_chain.size()) {
+                        agentState1="idle";
+                        return new TWThought(TWAction.MOVE,getRandomDirection());
+                    }
+                    this.rethinking = 1;
                     return think();
                 } else {
                     return new TWThought(TWAction.MOVE, curPath.getStep(curPathStep).getDirection());
                 }
             } else
 
-            if (this.agentState2 == 1){ // Plab B
+            if (this.agentState2 == 1){ // plan b
                 curPathStep=0;
                 if (agentState3 >= search_tile_chain.size()) agentState3 = 0;
                 addTempAllMessage("bPlanPickAreaUpdate "+search_tile_chain.get(agentState3)[0]+" "+search_tile_chain.get(agentState3)[1]);
@@ -1194,7 +1018,6 @@ public class TeamAgent1 extends TWAgent{
                         search_tile_chain.get(agentState3)[0], search_tile_chain.get(agentState3)[1]);
                 if (curPath==null){
                     this.agentState3 += 1;
-                    get_scheme();
                     this.rethinking=1;
                     return think();
                 } else{
@@ -1302,7 +1125,10 @@ public class TeamAgent1 extends TWAgent{
 
             if (curPath == null || this.rethinking==1 || curPath.getpath().size() <= curPathStep){
                 TWPath fuelPath = pathGenerator.findPath(this.getX(), this.getY(), targetX, targetY);
-                if (fuelPath != null){
+
+                if (fuelPath == null){
+                    System.out.println("test1");
+                } else {
                     curPath = fuelPath;
                     curPathStep = 0;
                 }
@@ -1348,6 +1174,10 @@ public class TeamAgent1 extends TWAgent{
                 this.agentState1 = "idle";
                 this.curPath = null;
                 this.curPathStep = 0;
+                if ("agent2".equals(this.name)){
+                    addTempMessage("Request");
+                    return;
+                }
 
                 // this.rethinking=1;
                 if (!AgentParameter.isPickNeedOneStep){
@@ -1370,7 +1200,6 @@ public class TeamAgent1 extends TWAgent{
             act(this.think());
         }
     }
-
 
     private TWDirection getRandomDirection(){
 
